@@ -12,6 +12,12 @@ export interface Ticket {
   created_at: string;
 }
 
+export interface TranscriptLine {
+  role: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface Call {
   call_id: string;
   caller_phone: string;
@@ -22,6 +28,7 @@ export interface Call {
   started_at: string;
   ended_at: string | null;
   duration_seconds: number;
+  transcript?: TranscriptLine[];
 }
 
 export interface ToolCall {
