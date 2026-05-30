@@ -259,6 +259,17 @@ Cloud agent is `civora-311` on Pipecat Cloud (your org). The TwiML Bin on the ph
 | STT TTFB 8–17 s + "hard reset" loops over Twilio | NVIDIA Parakeet expects 16 kHz PCM, Twilio delivers 8 kHz μ-law | Resample on ingress, or swap STT to `GradiumSTTService` (what `civora-311` does) |
 | `curl` against the TwiML Bin returns `Not Authorized` | Bin handler only accepts signed Twilio requests | Inspect the bin via the Twilio Console UI or the REST API (`/2010-04-01/Accounts/{sid}/IncomingPhoneNumbers`) |
 
+## 13. Security notes (hackathon scope)
+
+This code is sized for a hackathon demo and is **not production-hardened**. The following gaps are known and accepted within the demo window:
+
+- **`/api/webhook/event` has no authentication.** The dashboard backend trusts any POST that lands on it. The webhook is reached via an ngrok tunnel exposing `localhost:7861`. Mitigation in production: shared HMAC secret in the `X-Webhook-Secret` header, compared in constant time. The same secret would live in `server/.env.cloud` (passed via `pc cloud secrets`) and the dashboard backend's `.env`.
+- **CORS is wide open (`allow_origins=["*"]`).** Combined with the unauthenticated webhook, any page open in a browser can POST to the dashboard. Tighten to the dev origin (`http://localhost:5173`) and the deployed frontend origin before any non-demo use.
+- **`/twilio/voice` does not verify `X-Twilio-Signature`.** Anyone who knows the public webhook URL can fetch the TwiML and learn the Pipecat Cloud agent endpoint. Production fix: validate the signature with `twilio.request_validator.RequestValidator(auth_token)`.
+- **`/api/demo/*` and `/api/evals/run` are unauthenticated.** During the demo this is fine (the surface is small and time-bounded), but in production these should be behind an operator session or removed entirely. Of note, `/api/evals/run` triggers Cekura runs and consumes credits.
+
+**Post-demo checklist:** rotate the ngrok tunnel hostname, rotate the Twilio Auth Token, and rotate the Gradium API key. The demo phone number is fine to keep.
+
 ## Acknowledgements
 
 Built during the **YC Voice Agents Hackathon**, hosted by **Cekura** and **Daily**, in partnership with **NVIDIA**, **AWS**, and **Twilio**.
