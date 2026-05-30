@@ -44,6 +44,7 @@ from pipecat.runner.types import (
 )
 from pipecat.runner.utils import parse_telephony_websocket
 from pipecat.serializers.twilio import TwilioFrameSerializer
+from pipecat.services.gradium.stt import GradiumSTTService
 from pipecat.services.gradium.tts import GradiumTTSService
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.transports.base_transport import BaseTransport, TransportParams
@@ -60,7 +61,7 @@ from mock_backend import (
     lookup_trash_schedule,
 )
 from nemotron_llm import VLLMOpenAILLMService
-from nvidia_stt import NVidiaWebSocketSTTService
+from pipecat.transcriptions.language import Language
 
 load_dotenv(override=True)
 
@@ -579,12 +580,13 @@ async def run_bot(
 
     # Speech-to-Text service
     #
-    # Nemotron Speech Streaming STT, served over WebSocket. The server expects
-    # 16-bit PCM, 16 kHz, mono — matching the WebRTC input path. The URL can be
-    # overridden via NVIDIA_ASR_URL.
-    stt = NVidiaWebSocketSTTService(
-        url=os.getenv("NVIDIA_ASR_URL", "ws://192.168.7.228:8081"),
-        strip_interim_prefix=True,
+    # Gradium STT for cloud deployment (NVIDIA ASR is on private hackathon
+    # network, unreachable from Pipecat Cloud).
+    stt = GradiumSTTService(
+        api_key=os.environ["GRADIUM_API_KEY"],
+        settings=GradiumSTTService.Settings(
+            language=Language.EN,
+        ),
     )
 
     # LLM service — Nemotron-3-Super-120B served by vLLM (OpenAI-compatible chat

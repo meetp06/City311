@@ -149,12 +149,20 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
 venv/
 ENV/
 env.bak/
+
+# Misc local artifacts
+.system_generated/
+*.log
+ngrok-dashboard.log
+graphify-out/
 venv.bak/
 
 # Spyder project settings
@@ -223,3 +231,5 @@ __marimo__/
 # Local reference checkout of pipecat source (read-only; runtime uses the
 # installed pipecat-ai package). It's a separate 182MB embedded git repo.
 pipecat-core-code/
+
+NVIDIA_API_KEY=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

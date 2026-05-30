@@ -1,136 +1,153 @@
 #
-# Copyright (c) 2024–2026, Daily
+# Civora — Municipal 311 City Assistant
 #
-# SPDX-License-Identifier: BSD 2-Clause License
+# Mock backend data for the 311 voice assistant demo.
+#
+# This replaces the flower-shop catalog with city-service data:
+# policies, trash schedules, ticket-ID generation, and known addresses.
+# All lookups are case-insensitive in bot-nemotron.py.
 #
 
-"""Mock backend data for the Field & Flower flower-shop demo.
+import random
+from datetime import datetime
 
-This is the file to edit when customizing the demo for your own hackathon
-project: swap the catalog, add or remove "known customer" phone numbers, or
-replace the dicts entirely with calls to a real backend (database, REST API,
-etc.) from inside the tool functions in ``bot.py``.
-
-Both lookups are case-insensitive on the key side in ``bot.py`` — bouquet
-names are lowercased before lookup, and phone numbers should be stored in
-E.164 format (e.g. ``+14155551234``) to match Twilio's ``from_number``.
-
-Each bouquet carries:
-    price (USD), description, in_stock (bool), occasions (list of lowercase
-    strings the LLM can filter on), on_special (bool — used by the "any
-    deals?" path).
-"""
-
-BOUQUETS = {
-    "spring sunshine": {
-        "price": 45.00,
-        "description": "Yellow tulips and daffodils",
-        "in_stock": True,
-        "occasions": ["birthday", "thank you", "get well", "mother's day", "spring"],
-        "on_special": False,
-    },
-    "rose romance": {
-        "price": 65.00,
-        "description": "A dozen red roses with baby's breath",
-        "in_stock": True,
-        "occasions": ["valentine's day", "anniversary", "romance", "date night"],
-        "on_special": False,
-    },
-    "wildflower medley": {
-        "price": 38.00,
-        "description": "Mixed seasonal wildflowers",
-        "in_stock": True,
-        "occasions": ["birthday", "thank you", "just because", "housewarming"],
-        "on_special": True,
-    },
-    "lily elegance": {
-        "price": 55.00,
-        "description": "White lilies and greenery",
-        "in_stock": False,
-        "occasions": ["sympathy", "funeral", "remembrance"],
-        "on_special": False,
-    },
-    "succulent garden": {
-        "price": 42.00,
-        "description": "Assorted succulents in a ceramic pot",
-        "in_stock": True,
-        "occasions": ["housewarming", "office", "thank you", "low maintenance"],
-        "on_special": False,
-    },
-    "mother's day pastels": {
-        "price": 58.00,
-        "description": "Pink peonies, lavender, and white roses",
-        "in_stock": True,
-        "occasions": ["mother's day", "birthday", "thank you"],
-        "on_special": False,
-    },
-    "birthday brights": {
-        "price": 48.00,
-        "description": "Sunflowers, gerbera daisies, and orange roses",
-        "in_stock": True,
-        "occasions": ["birthday", "congratulations", "thank you"],
-        "on_special": True,
-    },
-    "sympathy whites": {
-        "price": 70.00,
-        "description": "White lilies, roses, and chrysanthemums",
-        "in_stock": True,
-        "occasions": ["sympathy", "funeral", "remembrance", "condolences"],
-        "on_special": False,
-    },
-    "anniversary blush": {
-        "price": 75.00,
-        "description": "Two dozen pink roses with eucalyptus",
-        "in_stock": False,
-        "occasions": ["anniversary", "valentine's day", "romance", "engagement"],
-        "on_special": False,
-    },
-    "garden party": {
-        "price": 52.00,
-        "description": "Hydrangeas, snapdragons, and stock",
-        "in_stock": True,
-        "occasions": ["wedding", "shower", "birthday", "thank you"],
-        "on_special": False,
-    },
-    "autumn harvest": {
-        "price": 46.00,
-        "description": "Sunflowers, mums, and fall foliage",
-        "in_stock": True,
-        "occasions": ["fall", "thanksgiving", "autumn", "halloween", "thank you"],
-        "on_special": True,
-    },
-    "winter pine": {
-        "price": 54.00,
-        "description": "White roses, pine, cedar, and eucalyptus",
-        "in_stock": True,
-        "occasions": ["winter", "christmas", "holiday", "new year"],
-        "on_special": False,
-    },
-    "new arrival": {
-        "price": 44.00,
-        "description": "Soft pink and white gerberas with daisies",
-        "in_stock": True,
-        "occasions": ["new baby", "baby shower", "congratulations"],
-        "on_special": False,
-    },
-    "graduation gold": {
-        "price": 48.00,
-        "description": "Sunflowers, yellow roses, and billy balls",
-        "in_stock": True,
-        "occasions": ["graduation", "congratulations", "achievement"],
-        "on_special": False,
-    },
-    "tulip tower": {
-        "price": 40.00,
-        "description": "Assorted spring tulips",
-        "in_stock": True,
-        "occasions": ["spring", "easter", "just because", "thinking of you"],
-        "on_special": False,
-    },
+# ---------------------------------------------------------------------------
+# City policy knowledge base
+# ---------------------------------------------------------------------------
+CITY_POLICIES = {
+    "trash": (
+        "Residential trash is collected once per week. Place bins at the curb "
+        "by 7 AM on your scheduled day. Maximum two extra bags beyond the bin."
+    ),
+    "recycling": (
+        "Recycling is collected every other week on your regular trash day. "
+        "Accepted materials: paper, cardboard, glass, aluminum, and plastics 1-5."
+    ),
+    "pothole": (
+        "Reported potholes are assessed within 3 business days. Critical potholes "
+        "on main roads are prioritized for same-week repair."
+    ),
+    "parking": (
+        "Street parking permits are issued by the Department of Transportation. "
+        "Meters are enforced Monday through Saturday, 8 AM to 6 PM."
+    ),
+    "noise": (
+        "Quiet hours are 10 PM to 7 AM on weekdays, 11 PM to 8 AM on weekends. "
+        "Noise complaints are routed to code enforcement."
+    ),
+    "water": (
+        "Water main issues are prioritized by severity. Severe leaks get same-day "
+        "dispatch. For water quality concerns, contact the Water Department."
+    ),
+    "streetlight": (
+        "Broken streetlights are typically repaired within 5 to 7 business days. "
+        "Emergency outages on major intersections are prioritized."
+    ),
+    "graffiti": (
+        "Graffiti removal requests are handled within 5 business days. "
+        "Offensive content is prioritized for 24-hour removal."
+    ),
+    "abandoned vehicle": (
+        "Abandoned vehicles are tagged and monitored for 72 hours. If unclaimed, "
+        "they are towed. Report license plate and location if possible."
+    ),
+    "snow": (
+        "Snow plowing begins when accumulation reaches 2 inches. Priority routes "
+        "include emergency corridors and school zones."
+    ),
+    "tree": (
+        "The city handles trees on public right-of-way. Fallen trees blocking "
+        "roads are emergency priority. Trimming requests take 2-4 weeks."
+    ),
+    "permit": (
+        "Building permits are issued by the Department of Buildings. Applications "
+        "can be submitted online or in person at City Hall."
+    ),
 }
 
-# Add your own number here if you want to test the bot with a known customer
-KNOWN_CUSTOMERS = {
-    "+14155551234": {"name": "Alex", "last_order": "rose romance"},
-    "+14155555678": {"name": "Jordan", "last_order": "wildflower medley"},
+# ---------------------------------------------------------------------------
+# Trash / recycling schedule by neighborhood (mock)
+# ---------------------------------------------------------------------------
+TRASH_SCHEDULES = {
+    "downtown": {"trash_day": "Monday", "recycling_week": "even"},
+    "midtown": {"trash_day": "Tuesday", "recycling_week": "odd"},
+    "uptown": {"trash_day": "Wednesday", "recycling_week": "even"},
+    "west side": {"trash_day": "Thursday", "recycling_week": "odd"},
+    "east side": {"trash_day": "Friday", "recycling_week": "even"},
+    "north end": {"trash_day": "Monday", "recycling_week": "odd"},
+    "south end": {"trash_day": "Tuesday", "recycling_week": "even"},
+    "riverside": {"trash_day": "Wednesday", "recycling_week": "odd"},
+    "harbor district": {"trash_day": "Thursday", "recycling_week": "even"},
+    "university district": {"trash_day": "Friday", "recycling_week": "odd"},
+}
+
+# Fallback for addresses we can't match to a neighborhood
+DEFAULT_SCHEDULE = {"trash_day": "Wednesday", "recycling_week": "even"}
+
+
+def lookup_trash_schedule(address: str) -> dict:
+    """Look up trash schedule by address. Tries to match a known neighborhood."""
+    addr_lower = address.lower()
+    for neighborhood, schedule in TRASH_SCHEDULES.items():
+        if neighborhood in addr_lower:
+            return {
+                "neighborhood": neighborhood.title(),
+                "trash_day": schedule["trash_day"],
+                "recycling_this_week": _is_recycling_week(schedule["recycling_week"]),
+                "note": "Place bins curbside by 7 AM.",
+            }
+    # Fallback: assign a random-ish but deterministic day based on address hash
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    day_idx = hash(addr_lower) % 5
+    return {
+        "neighborhood": "General",
+        "trash_day": days[day_idx],
+        "recycling_this_week": random.choice([True, False]),
+        "note": "Place bins curbside by 7 AM.",
+    }
+
+
+def _is_recycling_week(parity: str) -> bool:
+    """Determine if this is a recycling week based on even/odd week number."""
+    week_num = datetime.now().isocalendar()[1]
+    if parity == "even":
+        return week_num % 2 == 0
+    return week_num % 2 == 1
+
+
+# ---------------------------------------------------------------------------
+# Ticket ID generation
+# ---------------------------------------------------------------------------
+_TICKET_COUNTERS: dict[str, int] = {}
+
+TICKET_PREFIXES = {
+    "pothole": "POT",
+    "streetlight": "LGT",
+    "water_leak": "WTR",
+    "graffiti": "GRF",
+    "abandoned_vehicle": "VEH",
+    "noise": "NOI",
+    "trash": "TRS",
+    "tree": "TRE",
+    "general": "GEN",
+    "escalation": "ESC",
+}
+
+
+def generate_ticket_id(category: str) -> str:
+    """Generate a ticket ID like POT-240531-001."""
+    prefix = TICKET_PREFIXES.get(category.lower(), "GEN")
+    date_part = datetime.now().strftime("%y%m%d")
+    key = f"{prefix}-{date_part}"
+    _TICKET_COUNTERS[key] = _TICKET_COUNTERS.get(key, 0) + 1
+    seq = _TICKET_COUNTERS[key]
+    return f"{prefix}-{date_part}-{seq:03d}"
+
+
+# ---------------------------------------------------------------------------
+# Known callers (for Twilio caller-ID personalization)
+# ---------------------------------------------------------------------------
+KNOWN_CALLERS = {
+    "+14155551234": {"name": "Alex", "address": "123 Main St, Downtown"},
+    "+14155555678": {"name": "Jordan", "address": "456 Oak Ave, Midtown"},
 }
