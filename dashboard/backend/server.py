@@ -3,13 +3,29 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import datetime, timezone
 from typing import Literal, Dict, Any
 from pydantic import BaseModel
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+
+
+def _require_demo_enabled() -> None:
+    """Gate /api/demo/* and /api/evals/run endpoints.
+
+    These endpoints can mutate dashboard state and burn Cekura credits, so
+    they are disabled by default. Set ``DEMO_ENDPOINTS_ENABLED=1`` to re-enable
+    them during local development. The deployed (public) instance leaves this
+    unset, which makes these endpoints return 403.
+    """
+    if os.environ.get("DEMO_ENDPOINTS_ENABLED") != "1":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo and evaluation endpoints are disabled on this instance.",
+        )
 
 from app.cekura_client import CekuraClient
 from app.config import settings
@@ -158,6 +174,7 @@ async def get_tool_calls() -> dict:
 # ---------------------------------------------------------------------------
 @app.post("/api/demo/start-call")
 async def start_demo_call(payload: dict | None = None) -> dict:
+    _require_demo_enabled()
     phone = (payload or {}).get("caller_phone", "+1 (555) 311-0199")
     call = Call(call_id=store.next_call_id(), caller_phone=phone, status=CallStatus.ACTIVE)
     store.add_call(call)
@@ -175,6 +192,7 @@ async def start_demo_call(payload: dict | None = None) -> dict:
 
 @app.post("/api/demo/transcript")
 async def demo_transcript(req: TranscriptRequest) -> dict:
+    _require_demo_enabled()
     # Use the most recent active call if none specified.
     call_id = req.call_id
     if not call_id:
@@ -195,6 +213,7 @@ async def demo_transcript(req: TranscriptRequest) -> dict:
 
 @app.post("/api/demo/end-call")
 async def end_demo_call(payload: dict | None = None) -> dict:
+    _require_demo_enabled()
     call_id = (payload or {}).get("call_id")
     if not call_id:
         active = [c for c in store.list_calls() if c.status == CallStatus.ACTIVE]
@@ -210,6 +229,7 @@ async def end_demo_call(payload: dict | None = None) -> dict:
 # ---------------------------------------------------------------------------
 @app.post("/api/evals/run")
 async def run_evaluation() -> dict:
+    _require_demo_enabled()
     job = await cekura.run_scenarios()
     # Brief simulated test runtime for a believable demo loading state.
     await asyncio.sleep(1.2 if settings.mock_mode else 0)
