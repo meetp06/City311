@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd dashboard/frontend && npm install && npm run build",
+  "outputDirectory": "dashboard/frontend/dist",
+  "installCommand": "echo skip-root-install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ellyn-nonintermittent-unprettily.ngrok-free.dev/api/:path*"
+    },
+    {
+      "source": "/twilio/:path*",
+      "destination": "https://ellyn-nonintermittent-unprettily.ngrok-free.dev/twilio/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
