@@ -16,7 +16,7 @@ Three ways to try it: **call the number above**, open the web dashboard to watch
 
 ## 2. Video demo (< 60 s)
 
-▶ Watch the 60-second demo: **[insert hosted video link here before submission]**
+▶ Watch the 60-second demo: **[[insert hosted video link here before submission](https://drive.google.com/drive/folders/17VxuDJi4ekR6lik4DLziGYzSZabeLTHF?usp=sharing)]**
 
 ## 3. The problem
 
