@@ -13,7 +13,7 @@ async def setup():
         print("Error: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN is missing in the environment.")
         return
         
-    dashboard_url = os.getenv("DASHBOARD_URL", "https://ellyn-nonintermittent-unprettily.ngrok-free.dev")
+    dashboard_url = os.getenv("DASHBOARD_URL", "https://your-ngrok-subdomain.ngrok-free.dev")
     webhook_url = f"{dashboard_url}/twilio/voice"
     print(f"Setting Twilio Voice Webhook URL to: {webhook_url}")
     
